@@ -21,7 +21,7 @@ public:
 		return a[i][j];
 	}
 	// overloaded function call operator 
-       // как упражнение (вообще в методах можно писать объект[i][j] (вместо объект.a[i][j]))  
+       // как упражнение (вообще в методах можно писать объект[i][j] (вместо объект.a[i][j])),  
        // так как в vector есть operator[]
 
 #include "Egor.h"
