@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -19,15 +18,22 @@ public:
 		a(n_, std::vector<double>(m_, 0)) {}
 
 	double& operator () (int i, int j);  
-	const double& operator () (int i, int j) const;  
-	Matrix operator () (int i1, int i2, int j1, int j2) const;  
-	Matrix operator*(const Matrix& b);
-	Matrix operator-(const Matrix& b);  
-	Matrix operator+(const Matrix& b);  
-	Matrix &operator=(const Matrix&) = default;
+	//  обращение к элементу матрицы (перегруженная операция вызова функции)
+	const double& operator () (int i, int j) const; 
+	// для константных объектов 
+
+	Matrix operator () (int i1, int i2, int j1, int j2) const; 
+	/*  операция взятия подматрицы (перегруженная операция вызова функции) 
+	  с четырьмя целыми параметрами (начало и конец диапазона строк, 
+	  начало и конец диапазона столбцов) 
+	*/
+	Matrix operator*(const Matrix& b);   // умножение матриц
+	Matrix operator-(const Matrix& b);  // вычитание матриц 
+	Matrix operator+(const Matrix& b);  // сложения матриц 
+	Matrix &operator=(const Matrix&) = default;  // присваивание матриц 
 	 
 
-	double MatrixNorm() const;
+	double MatrixNorm() const;  // норма матрицы
 
 
 
@@ -35,27 +41,13 @@ public:
 	Matrix simple_iter_method(Matrix & x_0, double prec); // реализовать 
 
 
-	friend std::ostream& operator << (std::ostream& st, Matrix& a);
-	friend std::istream& operator >> (std::istream& st, Matrix& a);
+	friend std::ostream& operator << (std::ostream& st, Matrix& a); // вывод матрицы
+	friend std::istream& operator >> (std::istream& st, Matrix& a); // ввод матрицы
 
 };
 
 
-Matrix Matrix::operator () (int i1, int i2, int j1, int j2) const
-{
-	Matrix b;
-	b.n = i2 - i1 + 1;
-	b.m = j2 - j1 + 1;
-	b.a.resize(b.n);
-	for (int i = 0; i < n; ++i)
-		b.a[i].resize(b.m);
 
-	for (int i = i1; i <= i2; ++i)
-		copy(a[i].begin() + j1, a[i].begin() + j2 + 1, b.a[i - i1].begin());  
-		// параметры copy --  итераторы;  2-й параметр -- диапазон на 1 больше 
-
-	return b;
-}
 
  
 double& Matrix::operator () (int i, int j)
@@ -72,6 +64,22 @@ const double& Matrix::operator () (int i, int j) const
 	if (i < 0 || i > n || j < 0 || j > m)
 		throw "Invalid range";
 	return a[i][j];
+}
+
+Matrix Matrix::operator () (int i1, int i2, int j1, int j2) const
+{
+	Matrix b;
+	b.n = i2 - i1 + 1;
+	b.m = j2 - j1 + 1;
+	b.a.resize(b.n);
+	for (int i = 0; i < n; ++i)
+		b.a[i].resize(b.m);
+
+	for (int i = i1; i <= i2; ++i)
+		copy(a[i].begin() + j1, a[i].begin() + j2 + 1, b.a[i - i1].begin());
+	// параметры copy --  итераторы;  2-й параметр -- диапазон на 1 больше 
+
+	return b;
 }
 
 Matrix Matrix::operator*(const Matrix& b)
@@ -246,4 +254,4 @@ int main()
 
 	return EXIT_SUCCESS;
 }
- 
+  
