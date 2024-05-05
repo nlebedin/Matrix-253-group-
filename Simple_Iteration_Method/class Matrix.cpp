@@ -1,59 +1,52 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <ctime>  
+#include <ctime> 
+#include <iomanip> 
 #include <algorithm> 
 
 class Matrix
 {
 private:
-	int n; // число строк           
-	int m; // число столбцов       
-
 	std::vector <std::vector<double>> a;
+	// размер матрицы: число строк -- a.size();
+	// число столбцов -- a[0].size(); 
 
 public:
 
-	Matrix(int n_ = 0, int m_ = 0) : n(n_), m(m_),
-		a(n_, std::vector<double>(m_, 0)) {}
+	Matrix(int n = 0, int m = 0) :
+		a(n, std::vector<double>(m, 0)) {}
 
-	double& operator () (int i, int j);  
+	double& operator () (int i, int j);
 	//  обращение к элементу матрицы (перегруженная операция вызова функции)
-	const double& operator () (int i, int j) const; 
+	const double& operator () (int i, int j) const;
 	// для константных объектов 
 
-	Matrix operator () (int i1, int i2, int j1, int j2) const; 
-	/*  операция взятия подматрицы (перегруженная операция вызова функции) 
-	  с четырьмя целыми параметрами (начало и конец диапазона строк, 
-	  начало и конец диапазона столбцов) 
+	Matrix operator () (int i1, int i2, int j1, int j2) const;
+	/*  операция взятия подматрицы (перегруженная операция вызова функции)
+	  с четырьмя целыми параметрами (начало и конец диапазона строк,
+	  начало и конец диапазона столбцов)
 	*/
 	Matrix operator*(const Matrix& b);   // умножение матриц
 	Matrix operator-(const Matrix& b);  // вычитание матриц 
 	Matrix operator+(const Matrix& b);  // сложения матриц 
-	Matrix &operator=(const Matrix&) = default;  // присваивание матриц 
-	 
+	Matrix& operator=(const Matrix&) = default;  // присваивание матриц 
 
 	double MatrixNorm() const;  // норма матрицы
 
-
-
 	void transform();   // реализовать
-	Matrix simple_iter_method(Matrix & x_0, double prec); // реализовать 
+	Matrix simple_iter_method(Matrix& x_0, double prec); // реализовать 
 
-
-	friend std::ostream& operator << (std::ostream& st, Matrix& a); // вывод матрицы
+	friend std::ostream& operator << (std::ostream& st, const Matrix& a); // вывод матрицы
 	friend std::istream& operator >> (std::istream& st, Matrix& a); // ввод матрицы
-
 };
 
 
 
-
- 
 double& Matrix::operator () (int i, int j)
 // перегруженная операция вызова функции  
 {
-	if (i < 0 || i > n || j < 0 || j > m)
+	if (i < 0 || i > a.size() || j < 0 || j > a[0].size())
 		throw "Invalid range";
 	return a[i][j];
 }
@@ -61,7 +54,7 @@ double& Matrix::operator () (int i, int j)
 const double& Matrix::operator () (int i, int j) const
 // перегруженная операция вызова функции  
 {
-	if (i < 0 || i > n || j < 0 || j > m)
+	if (i < 0 || i > a.size() || j < 0 || j > a[0].size())
 		throw "Invalid range";
 	return a[i][j];
 }
@@ -69,11 +62,9 @@ const double& Matrix::operator () (int i, int j) const
 Matrix Matrix::operator () (int i1, int i2, int j1, int j2) const
 {
 	Matrix b;
-	b.n = i2 - i1 + 1;
-	b.m = j2 - j1 + 1;
-	b.a.resize(b.n);
-	for (int i = 0; i < n; ++i)
-		b.a[i].resize(b.m);
+	b.a.resize(i2 - i1 + 1);
+	for (int i = 0; i < i2 - i1 + 1; ++i)
+		b.a[i].resize(j2 - j1 + 1);
 
 	for (int i = i1; i <= i2; ++i)
 		copy(a[i].begin() + j1, a[i].begin() + j2 + 1, b.a[i - i1].begin());
@@ -84,7 +75,7 @@ Matrix Matrix::operator () (int i1, int i2, int j1, int j2) const
 
 Matrix Matrix::operator*(const Matrix& b)
 {
-	if (this->m != b.n)
+	if (this->a[0].size() != b.a.size())
 	{
 		std::cout << "multiplication error";
 		return *this;
@@ -92,33 +83,23 @@ Matrix Matrix::operator*(const Matrix& b)
 	else
 	{
 		Matrix c;
-		c.n = this->n;
-		c.m = b.m;
-		c.a.resize(n);
-		for (int i = 0; i <= n - 1; ++i)
-		{
-			c.a[i].resize(b.m);
-		}
-		double q = 0;
-		for (int i = 0; i <= this->n - 1; ++i)
-		{
-			for (int j = 0; j <= b.m - 1; ++j)
-			{
-				for (int k = 0; k <= this->m - 1; ++k)
-				{
-					q += this->a[i][k] * b.a[k][j];
-				}
-				c.a[i][j] = q;
-				q = 0;
-			}
-		}
+		c.a.resize(a.size());
+		for (int i = 0; i < a.size(); ++i)
+			c.a[i].resize(b.a[0].size());
+
+		for (int i = 0; i < a.size(); ++i)
+			for (int j = 0; j < b.a[0].size(); ++j)
+				for (int k = 0; k < a[0].size(); ++k)
+					c(i, j) += this->a[i][k] * b.a[k][j];
 		return c;
 	}
 }
 
 Matrix Matrix::operator-(const Matrix& b)
 {
-	if (this->m != b.m || this->n != b.n)
+	//std::cout << "-" << std::endl;
+	if (this->a.size() != b.a.size() ||
+		this->a[0].size() != b.a[0].size())
 	{
 		std::cout << "incorrect sizes";
 		return *this;
@@ -126,24 +107,21 @@ Matrix Matrix::operator-(const Matrix& b)
 	else
 	{
 		Matrix c;
-		c.n = this->n;
-		c.m = this->m;
-		c.a.resize(c.n);
-		for (int i = 0; i < n; ++i)
-			c.a[i].resize(c.m);
+		c.a.resize(a.size());
+		for (int i = 0; i < c.a.size(); ++i)
+			c.a[i].resize(a[0].size());
 
-		for (int i = 0; i < c.n; ++i)
-			for (int j = 0; j < c.m; ++j)
+		for (int i = 0; i < c.a.size(); ++i)
+			for (int j = 0; j < c.a[0].size(); ++j)
 				c(i, j) = (*this)(i, j) - b(i, j);
-
 		return c;
 	}
 }
 
-
 Matrix Matrix::operator+(const Matrix& b)
 {
-	if (this->m != b.m || this->n != b.n)
+	if (this->a.size() != b.a.size() ||
+		this->a[0].size() != b.a[0].size())
 	{
 		std::cout << "incorrect sizes";
 		return *this;
@@ -151,68 +129,57 @@ Matrix Matrix::operator+(const Matrix& b)
 	else
 	{
 		Matrix c;
-		c.n = this->n;
-		c.m = this->m;
-		c.a.resize(c.n);
-		for (int i = 0; i < n; ++i)
-			c.a[i].resize(c.m);
+		c.a.resize(a.size());
+		for (int i = 0; i < c.a.size(); ++i)
+			c.a[i].resize(a[0].size());
 
-		for (int i = 0; i < c.n; ++i)
-			for (int j = 0; j < c.m; ++j)
+		for (int i = 0; i < c.a.size(); ++i)
+			for (int j = 0; j < c.a[0].size(); ++j)
 				c(i, j) = (*this)(i, j) + b(i, j);
 
 		return c;
 	}
 }
 
-
 double Matrix::MatrixNorm() const
 {
-	double max = -1;
-	for (int i = 0; i < n; ++i)
+	double max = 0;
+	for (int i = 0; i < a.size(); ++i)
 	{
-		double ti = 0;
-		for (int j = 0; j < m; ++j)
-		{
-			ti += abs(this->a[i][j]);
-		}
-		if (max < ti)
-		{
-			max = ti;
-		}
+		double sum = 0;
+		for (int j = 0; j < a[0].size(); ++j)
+			sum += fabs(this->a[i][j]);
+
+		if (max < sum)
+			max = sum;
 	}
 	return max;
 }
 
-std::ostream& operator << (std::ostream& st, Matrix& a)
+std::ostream& operator << (std::ostream& st, const Matrix& m)
 {
 	st << std::endl;
-	for (int i = 0; i <= a.n - 1; ++i)
+	for (int i = 0; i < m.a.size(); ++i)
 	{
-		for (int j = 0; j <= a.m - 1; ++j)
-		{
-			st << a.a[i][j] << "\t";
-		}
+		for (int j = 0; j < m.a[0].size(); ++j)
+			st << std::setw(15) << m(i, j);
 		st << std::endl;
 	}
+	st << std::endl;
 	return st;
 }
 
-std::istream& operator >> (std::istream& st, Matrix& a)
+std::istream& operator >> (std::istream& st, Matrix& m)
 {
-	st >> a.n >> a.m;
-	std::vector<std::vector<double>> b(a.n);
-	for (int i = 0; i <= a.n - 1; ++i)
+	int r, c;
+	st >> r >> c;
+	m.a.resize(r);
+	for (int i = 0; i < r; ++i)
 	{
-		b[i].resize(a.m);
-		for (int j = 0; j <= a.m - 1; ++j)
-		{
-			double k;
-			st >> k;
-			b[i][j] = k;
-		}
+		m.a[i].resize(c);
+		for (int j = 0; j < c; ++j)
+			st >> m(i, j);
 	}
-	a.a = b;
 	return st;
 }
 
@@ -225,22 +192,32 @@ int main()
 	Matrix A(n, n + 1);
 	Matrix x_0(n, 1), x(n, 1);
 
-
 	A(0, 0) = 7;  A(0, 1) = 2;  A(0, 2) = 1;  A(0, 3) = 15;
 	A(1, 0) = 4;  A(1, 1) = 9;  A(1, 2) = 1;  A(1, 3) = 26;
 	A(2, 0) = 2;  A(2, 1) = 3;  A(2, 2) = 6;  A(2, 3) = 32;
 
-	x_0(0, 0) = 0;  x_0(1, 0) = 0; x_0(2, 0) = 0;
+	x_0(0, 0) = 0;  x_0(1, 0) = 0;  x_0(2, 0) = 0;
 
-	 
+	// ответ 1 2 4
 
-	std::cout << "x_0: " << std::endl; 
+
+/*
+	A(0, 0) = 3.278164;  A(0, 1) = 1.046583;  A(0, 2) = -1.378574;  A(0, 3) = -0.527466;
+	A(1, 0) = 1.046583;  A(1, 1) = 2.975937;  A(1, 2) = 0.934251;   A(1, 3) = 2.526877;
+	A(2, 0) = -1.378574; A(2, 1) = 0.934251;  A(2, 2) = 4.836173;   A(2, 3) = 5.165441;
+	// ответ ~  0.1  0.5  1
+ */
+
+	std::cout << "x_0: " << std::endl;
 	std::cout << x_0 << std::endl;
 
+	std::cout << "A: " << A << std::endl;
 	A.transform();
-	try 
-	{ 
-		x = A.simple_iter_method(x_0, 1e-6); 
+	std::cout << "H: " << A << std::endl;
+
+	try
+	{
+		x = A.simple_iter_method(x_0, 1e-6);
 	}
 
 	catch (std::string s)
@@ -251,7 +228,5 @@ int main()
 	std::cout << "x: " << std::endl;
 	std::cout << x << std::endl;
 
-
 	return EXIT_SUCCESS;
 }
-  
