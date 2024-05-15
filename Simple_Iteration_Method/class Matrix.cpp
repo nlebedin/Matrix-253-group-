@@ -1,21 +1,24 @@
 #include <iostream>
 #include <string>
-#include <vector>
-#include <ctime> 
+#include <vector> 
 #include <iomanip> 
 #include <algorithm> 
-
+ 
 class Matrix
 {
 private:
 	std::vector <std::vector<double>> a;
-	// размер матрицы: число строк -- a.size();
-	// число столбцов -- a[0].size(); 
 
 public:
 
 	Matrix(int n = 0, int m = 0) :
 		a(n, std::vector<double>(m, 0)) {}
+
+	int row() const  // число строк
+	{ return a.size(); }  
+
+	int col() const // число столбцов
+	{ return a[0].size(); }  
 
 	double& operator () (int i, int j);
 	//  обращение к элементу матрицы (перегруженная операция вызова функции)
@@ -27,26 +30,34 @@ public:
 	  с четырьмя целыми параметрами (начало и конец диапазона строк,
 	  начало и конец диапазона столбцов)
 	*/
-	Matrix operator*(const Matrix& b);   // умножение матриц
-	Matrix operator-(const Matrix& b);  // вычитание матриц 
-	Matrix operator+(const Matrix& b);  // сложения матриц 
-	Matrix& operator=(const Matrix&) = default;  // присваивание матриц 
+
+	Matrix operator* (double x) const;
+	// умножение матрицы на число
+
+	Matrix& operator=(const Matrix&) = default;  // присваивание матриц
 
 	double MatrixNorm() const;  // норма матрицы
 
+
 	void transform();   // реализовать
 	Matrix simple_iter_method(Matrix& x_0, double prec); // реализовать 
+
+
+	~Matrix() = default; // деструктор
+
+	friend Matrix operator*(const Matrix& a, const Matrix& b); // умножение матриц 
+	friend Matrix operator+(const Matrix& a, const Matrix& b); // сложение матриц 
+	friend Matrix operator-(const Matrix& a, const Matrix& b);  // вычитание матриц 
 
 	friend std::ostream& operator << (std::ostream& st, const Matrix& a); // вывод матрицы
 	friend std::istream& operator >> (std::istream& st, Matrix& a); // ввод матрицы
 };
 
 
-
 double& Matrix::operator () (int i, int j)
 // перегруженная операция вызова функции  
 {
-	if (i < 0 || i > a.size() || j < 0 || j > a[0].size())
+	if (i < 0 || i > row() || j < 0 || j > col())
 		throw "Invalid range";
 	return a[i][j];
 }
@@ -54,7 +65,7 @@ double& Matrix::operator () (int i, int j)
 const double& Matrix::operator () (int i, int j) const
 // перегруженная операция вызова функции  
 {
-	if (i < 0 || i > a.size() || j < 0 || j > a[0].size())
+	if (i < 0 || i > row() || j < 0 || j > col())
 		throw "Invalid range";
 	return a[i][j];
 }
@@ -73,72 +84,62 @@ Matrix Matrix::operator () (int i1, int i2, int j1, int j2) const
 	return b;
 }
 
-Matrix Matrix::operator*(const Matrix& b)
+Matrix Matrix::operator* (double x) const // умножение матрицы на число
 {
-	if (this->a[0].size() != b.a.size())
+	Matrix res = (*this);
+	for (int i = 0; i < row(); ++i)
+		for (int j = 0; j < col(); ++j)
+			res(i, j) *= x;
+	return res;
+}
+
+Matrix operator*(const Matrix& a, const Matrix& b)
+{
+	if (a.col() != b.row())
 	{
 		std::cout << "multiplication error";
-		return *this;
+		return a;
 	}
 	else
 	{
 		Matrix c;
-		c.a.resize(a.size());
-		for (int i = 0; i < a.size(); ++i)
-			c.a[i].resize(b.a[0].size());
+		c.a.resize(a.row());
+		for (int i = 0; i < a.row(); ++i)
+			c.a[i].resize(b.col());
 
-		for (int i = 0; i < a.size(); ++i)
-			for (int j = 0; j < b.a[0].size(); ++j)
-				for (int k = 0; k < a[0].size(); ++k)
-					c(i, j) += this->a[i][k] * b.a[k][j];
+		for (int i = 0; i < a.row(); ++i)
+			for (int j = 0; j < b.col(); ++j)
+				for (int k = 0; k < a.col(); ++k)
+					c(i, j) += a(i, k) * b(k, j);
 		return c;
 	}
 }
 
-Matrix Matrix::operator-(const Matrix& b)
+Matrix operator+(const Matrix& a, const Matrix& b)
 {
-	//std::cout << "-" << std::endl;
-	if (this->a.size() != b.a.size() ||
-		this->a[0].size() != b.a[0].size())
+	if (a.row() != b.row() || a.col() != b.col())
 	{
 		std::cout << "incorrect sizes";
-		return *this;
+		return a;
 	}
 	else
 	{
 		Matrix c;
-		c.a.resize(a.size());
-		for (int i = 0; i < c.a.size(); ++i)
-			c.a[i].resize(a[0].size());
+		c.a.resize(a.row());
+		for (int i = 0; i < c.row(); ++i)
+			c.a[i].resize(a.col());
 
-		for (int i = 0; i < c.a.size(); ++i)
-			for (int j = 0; j < c.a[0].size(); ++j)
-				c(i, j) = (*this)(i, j) - b(i, j);
+		for (int i = 0; i < c.row(); ++i)
+			for (int j = 0; j < c.col(); ++j)
+				c(i, j) = a(i, j) + b(i, j);
 		return c;
 	}
 }
 
-Matrix Matrix::operator+(const Matrix& b)
+Matrix operator-(const Matrix& a, const Matrix& b)
 {
-	if (this->a.size() != b.a.size() ||
-		this->a[0].size() != b.a[0].size())
-	{
-		std::cout << "incorrect sizes";
-		return *this;
-	}
-	else
-	{
-		Matrix c;
-		c.a.resize(a.size());
-		for (int i = 0; i < c.a.size(); ++i)
-			c.a[i].resize(a[0].size());
-
-		for (int i = 0; i < c.a.size(); ++i)
-			for (int j = 0; j < c.a[0].size(); ++j)
-				c(i, j) = (*this)(i, j) + b(i, j);
-
-		return c;
-	}
+	Matrix tmp = b * (-1);
+	return a + tmp;
 }
 
 double Matrix::MatrixNorm() const
@@ -186,7 +187,6 @@ std::istream& operator >> (std::istream& st, Matrix& m)
 
 int main()
 {
-	srand(time(NULL));
 	int n = 3;
 
 	Matrix A(n, n + 1);
@@ -215,6 +215,7 @@ int main()
 	A.transform();
 	std::cout << "H: " << A << std::endl;
 
+
 	try
 	{
 		x = A.simple_iter_method(x_0, 1e-6);
@@ -230,3 +231,4 @@ int main()
 
 	return EXIT_SUCCESS;
 }
+ 
